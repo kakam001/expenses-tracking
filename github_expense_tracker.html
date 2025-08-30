@@ -1,0 +1,328 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ausgaben-Tracker</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #2c3e50;
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        .loading {
+            text-align: center;
+            padding: 50px;
+            color: #7f8c8d;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 30px;
+        }
+        th, td {
+            padding: 12px;
+            text-align: left;
+            border-bottom: 1px solid #ddd;
+        }
+        th {
+            background-color: #3498db;
+            color: white;
+            font-weight: bold;
+        }
+        tr:nth-child(even) {
+            background-color: #f9f9f9;
+        }
+        tr:hover {
+            background-color: #e8f4fd;
+        }
+        .category-lebensmittel { color: #27ae60; font-weight: bold; }
+        .category-getränke { color: #3498db; font-weight: bold; }
+        .category-hygiene { color: #e74c3c; font-weight: bold; }
+        .category-haushalt { color: #f39c12; font-weight: bold; }
+        .category-snacks { color: #9b59b6; font-weight: bold; }
+        
+        .summary-section {
+            background: #ecf0f1;
+            padding: 20px;
+            border-radius: 8px;
+            margin-top: 20px;
+        }
+        .summary-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+        .summary-card {
+            background: white;
+            padding: 15px;
+            border-radius: 8px;
+            text-align: center;
+            border-left: 4px solid #3498db;
+        }
+        .summary-card.lebensmittel { border-left-color: #27ae60; }
+        .summary-card.getranke { border-left-color: #3498db; }
+        .summary-card.hygiene { border-left-color: #e74c3c; }
+        .summary-card.haushalt { border-left-color: #f39c12; }
+        .summary-card.snacks { border-left-color: #9b59b6; }
+        
+        .summary-card h3 {
+            margin: 0 0 10px 0;
+            font-size: 14px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+        .summary-card .amount {
+            font-size: 24px;
+            font-weight: bold;
+            color: #2c3e50;
+        }
+        .summary-card .percentage {
+            font-size: 12px;
+            color: #7f8c8d;
+            margin-top: 5px;
+        }
+        .total-summary {
+            background: #2c3e50;
+            color: white;
+            text-align: center;
+            padding: 20px;
+            border-radius: 8px;
+            margin-top: 15px;
+        }
+        .total-summary .amount {
+            font-size: 32px;
+            font-weight: bold;
+        }
+        .price {
+            text-align: right;
+            font-weight: bold;
+        }
+        .date {
+            font-size: 12px;
+            color: #7f8c8d;
+        }
+        .error {
+            background: #e74c3c;
+            color: white;
+            padding: 20px;
+            border-radius: 8px;
+            text-align: center;
+            margin: 20px 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🛒 Ausgaben-Tracker</h1>
+        
+        <div id="loading" class="loading">
+            <p>Lade Ausgabendaten...</p>
+        </div>
+
+        <div id="error" class="error" style="display: none;">
+            <p>Fehler beim Laden der expenses.csv Datei. Stelle sicher, dass sie im gleichen Ordner liegt!</p>
+        </div>
+        
+        <table id="expenseTable" style="display: none;">
+            <thead>
+                <tr>
+                    <th>Datum</th>
+                    <th>Artikel</th>
+                    <th>Kategorie</th>
+                    <th>Preis (€)</th>
+                    <th>Shop</th>
+                </tr>
+            </thead>
+            <tbody id="tableBody">
+                <!-- Wird automatisch aus CSV gefüllt -->
+            </tbody>
+        </table>
+
+        <div id="summarySection" class="summary-section" style="display: none;">
+            <h2>📊 Zusammenfassung nach Kategorien</h2>
+            <div class="summary-grid">
+                <div class="summary-card lebensmittel">
+                    <h3>🥗 Lebensmittel</h3>
+                    <div class="amount" id="lebensmittelSum">0,00 €</div>
+                    <div class="percentage" id="lebensmittelPercent">(0,0%)</div>
+                </div>
+                <div class="summary-card getranke">
+                    <h3>🥤 Getränke</h3>
+                    <div class="amount" id="getrankeSum">0,00 €</div>
+                    <div class="percentage" id="getrankePercent">(0,0%)</div>
+                </div>
+                <div class="summary-card hygiene">
+                    <h3>🧴 Hygiene</h3>
+                    <div class="amount" id="hygieneSum">0,00 €</div>
+                    <div class="percentage" id="hygienePercent">(0,0%)</div>
+                </div>
+                <div class="summary-card haushalt">
+                    <h3>🧽 Haushalt</h3>
+                    <div class="amount" id="haushaltSum">0,00 €</div>
+                    <div class="percentage" id="haushaltPercent">(0,0%)</div>
+                </div>
+                <div class="summary-card snacks">
+                    <h3>🍿 Snacks/Süßes</h3>
+                    <div class="amount" id="snacksSum">0,00 €</div>
+                    <div class="percentage" id="snacksPercent">(0,0%)</div>
+                </div>
+            </div>
+            
+            <div class="total-summary">
+                <h2>💰 Gesamtausgaben</h2>
+                <div class="amount" id="totalSum">0,00 €</div>
+                <p style="margin: 10px 0 0 0; font-size: 14px; opacity: 0.8;" id="dateRange">
+                    Zeitraum wird automatisch berechnet
+                </p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // CSV laden und parsen
+        async function loadExpenses() {
+            try {
+                const response = await fetch('expenses.csv');
+                if (!response.ok) {
+                    throw new Error('CSV-Datei nicht gefunden');
+                }
+                
+                const csvText = await response.text();
+                const expenses = parseCSV(csvText);
+                
+                displayExpenses(expenses);
+                calculateSums(expenses);
+                
+                // Loading verstecken, Tabelle anzeigen
+                document.getElementById('loading').style.display = 'none';
+                document.getElementById('expenseTable').style.display = 'table';
+                document.getElementById('summarySection').style.display = 'block';
+                
+            } catch (error) {
+                console.error('Fehler beim Laden:', error);
+                document.getElementById('loading').style.display = 'none';
+                document.getElementById('error').style.display = 'block';
+            }
+        }
+
+        // Einfacher CSV Parser
+        function parseCSV(csvText) {
+            const lines = csvText.trim().split('\n');
+            const headers = lines[0].split(',');
+            const expenses = [];
+            
+            for (let i = 1; i < lines.length; i++) {
+                const values = lines[i].split(',');
+                if (values.length === headers.length) {
+                    expenses.push({
+                        datum: values[0],
+                        artikel: values[1],
+                        kategorie: values[2],
+                        preis: parseFloat(values[3]),
+                        shop: values[4]
+                    });
+                }
+            }
+            
+            return expenses;
+        }
+
+        // Tabelle füllen
+        function displayExpenses(expenses) {
+            const tbody = document.getElementById('tableBody');
+            tbody.innerHTML = '';
+            
+            expenses.forEach(expense => {
+                const row = document.createElement('tr');
+                const categoryClass = 'category-' + expense.kategorie.toLowerCase().replace(/[^a-z]/g, '');
+                
+                row.innerHTML = `
+                    <td>${expense.datum}</td>
+                    <td>${expense.artikel}</td>
+                    <td class="${categoryClass}">${expense.kategorie}</td>
+                    <td class="price">${expense.preis.toFixed(2).replace('.', ',')}</td>
+                    <td>${expense.shop}</td>
+                `;
+                tbody.appendChild(row);
+            });
+        }
+
+        // Summen berechnen
+        function calculateSums(expenses) {
+            let sums = {
+                lebensmittel: 0,
+                getränke: 0,
+                hygiene: 0,
+                haushalt: 0,
+                snacks: 0,
+                total: 0
+            };
+
+            let dates = [];
+
+            expenses.forEach(expense => {
+                const category = expense.kategorie.toLowerCase();
+                const price = expense.preis;
+                
+                if (category.includes('lebensmittel')) {
+                    sums.lebensmittel += price;
+                } else if (category.includes('getränke')) {
+                    sums.getränke += price;
+                } else if (category.includes('hygiene')) {
+                    sums.hygiene += price;
+                } else if (category.includes('haushalt')) {
+                    sums.haushalt += price;
+                } else if (category.includes('snacks') || category.includes('süßes')) {
+                    sums.snacks += price;
+                }
+                
+                sums.total += price;
+                dates.push(expense.datum);
+            });
+
+            // Datum-Range berechnen
+            const uniqueDates = [...new Set(dates)].sort();
+            const dateRange = uniqueDates.length > 1 
+                ? `${uniqueDates[0]} - ${uniqueDates[uniqueDates.length - 1]}`
+                : uniqueDates[0] || '';
+
+            // Update der Anzeige mit Prozenten
+            document.getElementById('lebensmittelSum').textContent = sums.lebensmittel.toFixed(2).replace('.', ',') + ' €';
+            document.getElementById('lebensmittelPercent').textContent = '(' + (sums.lebensmittel/sums.total*100).toFixed(1) + '%)';
+            
+            document.getElementById('getrankeSum').textContent = sums.getränke.toFixed(2).replace('.', ',') + ' €';
+            document.getElementById('getrankePercent').textContent = '(' + (sums.getränke/sums.total*100).toFixed(1) + '%)';
+            
+            document.getElementById('hygieneSum').textContent = sums.hygiene.toFixed(2).replace('.', ',') + ' €';
+            document.getElementById('hygienePercent').textContent = '(' + (sums.hygiene/sums.total*100).toFixed(1) + '%)';
+            
+            document.getElementById('haushaltSum').textContent = sums.haushalt.toFixed(2).replace('.', ',') + ' €';
+            document.getElementById('haushaltPercent').textContent = '(' + (sums.haushalt/sums.total*100).toFixed(1) + '%)';
+            
+            document.getElementById('snacksSum').textContent = sums.snacks.toFixed(2).replace('.', ',') + ' €';
+            document.getElementById('snacksPercent').textContent = '(' + (sums.snacks/sums.total*100).toFixed(1) + '%)';
+            
+            document.getElementById('totalSum').textContent = sums.total.toFixed(2).replace('.', ',') + ' €';
+            document.getElementById('dateRange').textContent = 'Zeitraum: ' + dateRange;
+        }
+
+        // Beim Laden der Seite
+        window.addEventListener('load', loadExpenses);
+    </script>
+</body>
+</html>
