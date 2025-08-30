@@ -23,11 +23,6 @@
             text-align: center;
             margin-bottom: 30px;
         }
-        .loading {
-            text-align: center;
-            padding: 50px;
-            color: #7f8c8d;
-        }
         table {
             width: 100%;
             border-collapse: collapse;
@@ -116,13 +111,39 @@
             font-size: 12px;
             color: #7f8c8d;
         }
-        .error {
-            background: #e74c3c;
-            color: white;
+        .edit-section {
+            background: #f8f9fa;
             padding: 20px;
             border-radius: 8px;
-            text-align: center;
-            margin: 20px 0;
+            margin-bottom: 20px;
+            border: 2px solid #e9ecef;
+        }
+        .edit-section h3 {
+            color: #2c3e50;
+            margin-bottom: 15px;
+        }
+        .add-form {
+            display: grid;
+            grid-template-columns: 1fr 2fr 1fr 1fr 1fr auto;
+            gap: 10px;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+        .add-form input, .add-form select {
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+        .add-btn {
+            background: #27ae60;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        .add-btn:hover {
+            background: #229954;
         }
     </style>
 </head>
@@ -130,15 +151,25 @@
     <div class="container">
         <h1>🛒 Ausgaben-Tracker</h1>
         
-        <div id="loading" class="loading">
-            <p>Lade Ausgabendaten...</p>
-        </div>
-
-        <div id="error" class="error" style="display: none;">
-            <p>Fehler beim Laden der expenses.csv Datei. Stelle sicher, dass sie im gleichen Ordner liegt!</p>
+        <div class="edit-section">
+            <h3>➕ Neue Ausgabe hinzufügen</h3>
+            <div class="add-form">
+                <input type="date" id="newDate" value="">
+                <input type="text" id="newArtikel" placeholder="Artikel-Name">
+                <select id="newKategorie">
+                    <option value="Lebensmittel">Lebensmittel</option>
+                    <option value="Getränke">Getränke</option>
+                    <option value="Hygiene">Hygiene</option>
+                    <option value="Haushalt">Haushalt</option>
+                    <option value="Snacks/Süßes">Snacks/Süßes</option>
+                </select>
+                <input type="number" id="newPreis" step="0.01" placeholder="Preis">
+                <input type="text" id="newShop" placeholder="Shop">
+                <button class="add-btn" onclick="addExpense()">Hinzufügen</button>
+            </div>
         </div>
         
-        <table id="expenseTable" style="display: none;">
+        <table id="expenseTable">
             <thead>
                 <tr>
                     <th>Datum</th>
@@ -149,11 +180,11 @@
                 </tr>
             </thead>
             <tbody id="tableBody">
-                <!-- Wird automatisch aus CSV gefüllt -->
+                <!-- Wird automatisch gefüllt -->
             </tbody>
         </table>
 
-        <div id="summarySection" class="summary-section" style="display: none;">
+        <div class="summary-section">
             <h2>📊 Zusammenfassung nach Kategorien</h2>
             <div class="summary-grid">
                 <div class="summary-card lebensmittel">
@@ -194,62 +225,132 @@
     </div>
 
     <script>
-        // CSV laden und parsen
-        async function loadExpenses() {
-            try {
-                const response = await fetch('expenses.csv');
-                if (!response.ok) {
-                    throw new Error('CSV-Datei nicht gefunden');
-                }
-                
-                const csvText = await response.text();
-                const expenses = parseCSV(csvText);
-                
-                displayExpenses(expenses);
-                calculateSums(expenses);
-                
-                // Loading verstecken, Tabelle anzeigen
-                document.getElementById('loading').style.display = 'none';
-                document.getElementById('expenseTable').style.display = 'table';
-                document.getElementById('summarySection').style.display = 'block';
-                
-            } catch (error) {
-                console.error('Fehler beim Laden:', error);
-                document.getElementById('loading').style.display = 'none';
-                document.getElementById('error').style.display = 'block';
-            }
-        }
+        // Deine Ausgabendaten direkt im Code
+        const expenses = [
+            {datum: '23.08.2025', artikel: 'Bio Bananen (0.378 kg)', kategorie: 'Lebensmittel', preis: 0.75, shop: 'Penny'},
+            {datum: '23.08.2025', artikel: 'Vollkorn Sandwich', kategorie: 'Lebensmittel', preis: 1.09, shop: 'Penny'},
+            {datum: '23.08.2025', artikel: 'Heidelbeere 300g', kategorie: 'Lebensmittel', preis: 2.99, shop: 'Penny'},
+            {datum: '23.08.2025', artikel: 'Nuss-Mix', kategorie: 'Snacks/Süßes', preis: 2.99, shop: 'Penny'},
+            {datum: '23.08.2025', artikel: 'Gemüsezwiebeln', kategorie: 'Lebensmittel', preis: 1.69, shop: 'Penny'},
+            {datum: '23.08.2025', artikel: 'Knoblauch', kategorie: 'Lebensmittel', preis: 0.99, shop: 'Penny'},
+            {datum: '23.08.2025', artikel: 'Paprika rot', kategorie: 'Lebensmittel', preis: 1.69, shop: 'Penny'},
+            {datum: '23.08.2025', artikel: 'Kölln Schoko Müs', kategorie: 'Snacks/Süßes', preis: 2.49, shop: 'Penny'},
+            {datum: '23.08.2025', artikel: 'Olivenöl', kategorie: 'Lebensmittel', preis: 4.99, shop: 'Penny'},
+            {datum: '23.08.2025', artikel: 'San Fabio Sauce', kategorie: 'Lebensmittel', preis: 1.49, shop: 'Penny'},
+            {datum: '23.08.2025', artikel: 'Barilla Rustico', kategorie: 'Lebensmittel', preis: 1.89, shop: 'Penny'},
+            {datum: '23.08.2025', artikel: 'Penny Tasche', kategorie: 'Haushalt', preis: 1.99, shop: 'Penny'},
+            {datum: '30.08.2025', artikel: 'Ingwer Bio (0.136 kg)', kategorie: 'Lebensmittel', preis: 0.67, shop: 'Lidl'},
+            {datum: '30.08.2025', artikel: 'Bananen Fairtrade (1.052 kg)', kategorie: 'Lebensmittel', preis: 1.78, shop: 'Lidl'},
+            {datum: '30.08.2025', artikel: 'Kiwi Gold', kategorie: 'Lebensmittel', preis: 1.19, shop: 'Lidl'},
+            {datum: '30.08.2025', artikel: 'Avocado vorger.', kategorie: 'Lebensmittel', preis: 0.69, shop: 'Lidl'},
+            {datum: '30.08.2025', artikel: 'Bio Möhren', kategorie: 'Lebensmittel', preis: 1.49, shop: 'Lidl'},
+            {datum: '30.08.2025', artikel: 'Netzsack Saite', kategorie: 'Lebensmittel', preis: 0.39, shop: 'Lidl'},
+            {datum: '30.08.2025', artikel: 'Zitronensäfte', kategorie: 'Getränke', preis: 2.59, shop: 'Lidl'},
+            {datum: '30.08.2025', artikel: 'Blutorange Chili', kategorie: 'Getränke', preis: 4.49, shop: 'Lidl'},
+            {datum: '30.08.2025', artikel: 'Hela Ketchup delikat', kategorie: 'Lebensmittel', preis: 3.39, shop: 'Lidl'},
+            {datum: '30.08.2025', artikel: 'Heinz Ketchup zero', kategorie: 'Lebensmittel', preis: 3.79, shop: 'Lidl'},
+            {datum: '30.08.2025', artikel: 'Delikat Mayonnaise', kategorie: 'Lebensmittel', preis: 1.59, shop: 'Lidl'},
+            {datum: '30.08.2025', artikel: 'Klare Suppe mit Rind', kategorie: 'Lebensmittel', preis: 3.89, shop: 'Lidl'},
+            {datum: '30.08.2025', artikel: 'Maggi Würze', kategorie: 'Lebensmittel', preis: 2.49, shop: 'Lidl'},
+            {datum: '30.08.2025', artikel: 'Rinder-Brühe', kategorie: 'Lebensmittel', preis: 0.99, shop: 'Lidl'},
+            {datum: '30.08.2025', artikel: 'Gemüse-Brühe', kategorie: 'Lebensmittel', preis: 0.99, shop: 'Lidl'},
+            {datum: '30.08.2025', artikel: 'Löwensenf mittlelsch.', kategorie: 'Lebensmittel', preis: 1.89, shop: 'Lidl'},
+            {datum: '30.08.2025', artikel: 'Barilla Spaghettini (2x)', kategorie: 'Lebensmittel', preis: 3.58, shop: 'Lidl'},
+            {datum: '30.08.2025', artikel: 'Barilla Fusilli (2x)', kategorie: 'Lebensmittel', preis: 3.58, shop: 'Lidl'},
+            {datum: '30.08.2025', artikel: 'Passierte Tomaten (24x)', kategorie: 'Lebensmittel', preis: 15.36, shop: 'Lidl'},
+            {datum: '30.08.2025', artikel: 'Gehackte Tomaten (24x)', kategorie: 'Lebensmittel', preis: 14.16, shop: 'Lidl'},
+            {datum: '30.08.2025', artikel: 'Erbsen sehr fein (12x)', kategorie: 'Lebensmittel', preis: 10.68, shop: 'Lidl'},
+            {datum: '30.08.2025', artikel: 'Sonnenmais (12x)', kategorie: 'Lebensmittel', preis: 11.88, shop: 'Lidl'},
+            {datum: '30.08.2025', artikel: 'Geschälte Tomaten (12x)', kategorie: 'Lebensmittel', preis: 6.60, shop: 'Lidl'},
+            {datum: '30.08.2025', artikel: 'Kokosnuss Mil Normal (12x)', kategorie: 'Lebensmittel', preis: 14.28, shop: 'Lidl'},
+            {datum: '30.08.2025', artikel: 'Kidney Bohnen (12x)', kategorie: 'Lebensmittel', preis: 8.28, shop: 'Lidl'},
+            {datum: '30.08.2025', artikel: 'Walnusskerne', kategorie: 'Lebensmittel', preis: 2.99, shop: 'Lidl'},
+            {datum: '30.08.2025', artikel: 'Nuts Royal', kategorie: 'Snacks/Süßes', preis: 1.09, shop: 'Lidl'},
+            {datum: '30.08.2025', artikel: 'Vollkorn Sandwich', kategorie: 'Lebensmittel', preis: 1.69, shop: 'Lidl'},
+            {datum: '30.08.2025', artikel: 'Superfood Mexiko (2x)', kategorie: 'Lebensmittel', preis: 5.98, shop: 'Lidl'},
+            {datum: '30.08.2025', artikel: 'Pizzately M. Sauce', kategorie: 'Lebensmittel', preis: 1.99, shop: 'Lidl'},
+            {datum: '30.08.2025', artikel: 'Mozzarella gerieben', kategorie: 'Lebensmittel', preis: 1.99, shop: 'Lidl'},
+            {datum: '30.08.2025', artikel: 'Japanische Soja', kategorie: 'Lebensmittel', preis: 0.99, shop: 'Lidl'},
+            {datum: '30.08.2025', artikel: 'Rama Margarine 60%lg', kategorie: 'Lebensmittel', preis: 1.89, shop: 'Lidl'},
+            {datum: '30.08.2025', artikel: 'Bio Eier UK1 10er', kategorie: 'Lebensmittel', preis: 3.39, shop: 'Lidl'},
+            {datum: '30.08.2025', artikel: 'Kamillentee', kategorie: 'Getränke', preis: 0.89, shop: 'Lidl'},
+            {datum: '30.08.2025', artikel: 'Früchtemilch 70%', kategorie: 'Getränke', preis: 1.75, shop: 'Lidl'},
+            {datum: '30.08.2025', artikel: 'Earl Anis Fenchel Tee', kategorie: 'Getränke', preis: 1.19, shop: 'Lidl'},
+            {datum: '30.08.2025', artikel: 'Valensina Nektar ACE (6x)', kategorie: 'Getränke', preis: 8.70, shop: 'Lidl'},
+            {datum: '30.08.2025', artikel: 'Pfand 0.25l (6x)', kategorie: 'Getränke', preis: 1.50, shop: 'Lidl'},
+            {datum: '30.08.2025', artikel: 'Lipton Pfirsich Zero (6x)', kategorie: 'Getränke', preis: 7.74, shop: 'Lidl'},
+            {datum: '30.08.2025', artikel: 'Pfand 0.25l M (6x)', kategorie: 'Getränke', preis: 1.50, shop: 'Lidl'},
+            {datum: '30.08.2025', artikel: 'Funny Frisch ungarisch', kategorie: 'Snacks/Süßes', preis: 1.99, shop: 'Lidl'},
+            {datum: '30.08.2025', artikel: 'Märchenwelt Sauer (2x)', kategorie: 'Snacks/Süßes', preis: 1.98, shop: 'Lidl'},
+            {datum: '30.08.2025', artikel: 'Spülmaschpflege', kategorie: 'Haushalt', preis: 1.45, shop: 'Lidl'},
+            {datum: '30.08.2025', artikel: 'Colorwaschmittel', kategorie: 'Haushalt', preis: 4.25, shop: 'Lidl'},
+            {datum: '30.08.2025', artikel: 'Kalkstopp Tabs', kategorie: 'Haushalt', preis: 3.25, shop: 'Lidl'},
+            {datum: '30.08.2025', artikel: 'WS Spezial-Salz', kategorie: 'Haushalt', preis: 0.80, shop: 'Lidl'},
+            {datum: '30.08.2025', artikel: 'Somat Ex.4in1ca.80AM', kategorie: 'Haushalt', preis: 12.99, shop: 'Lidl'},
+            {datum: '30.08.2025', artikel: 'WC Rein. Power Lemon', kategorie: 'Haushalt', preis: 0.95, shop: 'Lidl'},
+            {datum: '30.08.2025', artikel: 'Colgate Sens White A', kategorie: 'Hygiene', preis: 4.89, shop: 'Lidl'},
+            {datum: '30.08.2025', artikel: 'Swiffer Starterset', kategorie: 'Haushalt', preis: 4.49, shop: 'Lidl'},
+            {datum: '30.08.2025', artikel: 'Aluminiumfolie', kategorie: 'Haushalt', preis: 2.89, shop: 'Lidl'},
+            {datum: '30.08.2025', artikel: 'Toilettenpapier 3lg.', kategorie: 'Hygiene', preis: 3.77, shop: 'Lidl'},
+            {datum: '30.08.2025', artikel: 'Küchentücher 3-lagig', kategorie: 'Haushalt', preis: 2.85, shop: 'Lidl'}
+        ];
 
-        // Einfacher CSV Parser
-        function parseCSV(csvText) {
-            const lines = csvText.trim().split('\n');
-            const headers = lines[0].split(',');
-            const expenses = [];
-            
-            for (let i = 1; i < lines.length; i++) {
-                const values = lines[i].split(',');
-                if (values.length === headers.length) {
-                    expenses.push({
-                        datum: values[0],
-                        artikel: values[1],
-                        kategorie: values[2],
-                        preis: parseFloat(values[3]),
-                        shop: values[4]
-                    });
-                }
+        // Neue Ausgabe hinzufügen
+        function addExpense() {
+            const datum = document.getElementById('newDate').value;
+            const artikel = document.getElementById('newArtikel').value;
+            const kategorie = document.getElementById('newKategorie').value;
+            const preis = parseFloat(document.getElementById('newPreis').value);
+            const shop = document.getElementById('newShop').value;
+
+            if (!datum || !artikel || !preis || !shop) {
+                alert('Bitte alle Felder ausfüllen!');
+                return;
             }
-            
-            return expenses;
+
+            // Datum konvertieren (von YYYY-MM-DD zu DD.MM.YYYY)
+            const [year, month, day] = datum.split('-');
+            const germanDate = `${day}.${month}.${year}`;
+
+            expenses.push({
+                datum: germanDate,
+                artikel: artikel,
+                kategorie: kategorie,
+                preis: preis,
+                shop: shop
+            });
+
+            // Formular zurücksetzen
+            document.getElementById('newDate').value = '';
+            document.getElementById('newArtikel').value = '';
+            document.getElementById('newPreis').value = '';
+            document.getElementById('newShop').value = '';
+
+            // Tabelle neu laden
+            displayExpenses();
+            calculateSums();
         }
 
         // Tabelle füllen
-        function displayExpenses(expenses) {
+        function displayExpenses() {
             const tbody = document.getElementById('tableBody');
             tbody.innerHTML = '';
             
-            expenses.forEach(expense => {
+            // Nach Datum sortieren
+            const sortedExpenses = expenses.sort((a, b) => {
+                const dateA = new Date(a.datum.split('.').reverse().join('-'));
+                const dateB = new Date(b.datum.split('.').reverse().join('-'));
+                return dateA - dateB;
+            });
+            
+            sortedExpenses.forEach(expense => {
                 const row = document.createElement('tr');
-                const categoryClass = 'category-' + expense.kategorie.toLowerCase().replace(/[^a-z]/g, '');
+                const categoryClass = 'category-' + expense.kategorie.toLowerCase()
+                    .replace(/[äöüß]/g, (match) => {
+                        const map = {'ä': 'a', 'ö': 'o', 'ü': 'u', 'ß': 'ss'};
+                        return map[match];
+                    })
+                    .replace(/[^a-z]/g, '');
                 
                 row.innerHTML = `
                     <td>${expense.datum}</td>
@@ -263,7 +364,7 @@
         }
 
         // Summen berechnen
-        function calculateSums(expenses) {
+        function calculateSums() {
             let sums = {
                 lebensmittel: 0,
                 getränke: 0,
@@ -296,7 +397,12 @@
             });
 
             // Datum-Range berechnen
-            const uniqueDates = [...new Set(dates)].sort();
+            const uniqueDates = [...new Set(dates)].sort((a, b) => {
+                const dateA = new Date(a.split('.').reverse().join('-'));
+                const dateB = new Date(b.split('.').reverse().join('-'));
+                return dateA - dateB;
+            });
+            
             const dateRange = uniqueDates.length > 1 
                 ? `${uniqueDates[0]} - ${uniqueDates[uniqueDates.length - 1]}`
                 : uniqueDates[0] || '';
@@ -321,8 +427,19 @@
             document.getElementById('dateRange').textContent = 'Zeitraum: ' + dateRange;
         }
 
+        // Heute als Standard-Datum setzen
+        function setTodayAsDefault() {
+            const today = new Date();
+            const germanToday = today.toISOString().split('T')[0];
+            document.getElementById('newDate').value = germanToday;
+        }
+
         // Beim Laden der Seite
-        window.addEventListener('load', loadExpenses);
+        window.addEventListener('load', function() {
+            displayExpenses();
+            calculateSums();
+            setTodayAsDefault();
+        });
     </script>
 </body>
 </html>
