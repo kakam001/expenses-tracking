@@ -23,6 +23,30 @@
             text-align: center;
             margin-bottom: 30px;
         }
+        
+        .upload-section {
+            background: #ecf0f1;
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 30px;
+            text-align: center;
+        }
+        .file-input {
+            margin: 10px;
+            padding: 10px;
+            border: 2px dashed #3498db;
+            border-radius: 8px;
+            background: white;
+            cursor: pointer;
+            display: inline-block;
+        }
+        .file-input:hover {
+            background: #f8f9fa;
+        }
+        input[type="file"] {
+            margin: 10px 0;
+        }
+        
         table {
             width: 100%;
             border-collapse: collapse;
@@ -47,8 +71,8 @@
         .category-lebensmittel { color: #27ae60; font-weight: bold; }
         .category-getränke { color: #3498db; font-weight: bold; }
         .category-hygiene { color: #e74c3c; font-weight: bold; }
-        .category-haushalt { color: #f39c12; font-weight: bold; }
         .category-snacks { color: #9b59b6; font-weight: bold; }
+        .category-haushalt { color: #f39c12; font-weight: bold; }
         
         .summary-section {
             background: #ecf0f1;
@@ -70,10 +94,10 @@
             border-left: 4px solid #3498db;
         }
         .summary-card.lebensmittel { border-left-color: #27ae60; }
-        .summary-card.getranke { border-left-color: #3498db; }
+        .summary-card.getränke { border-left-color: #3498db; }
         .summary-card.hygiene { border-left-color: #e74c3c; }
-        .summary-card.haushalt { border-left-color: #f39c12; }
         .summary-card.snacks { border-left-color: #9b59b6; }
+        .summary-card.haushalt { border-left-color: #f39c12; }
         
         .summary-card h3 {
             margin: 0 0 10px 0;
@@ -111,39 +135,19 @@
             font-size: 12px;
             color: #7f8c8d;
         }
-        .edit-section {
-            background: #f8f9fa;
-            padding: 20px;
-            border-radius: 8px;
-            margin-bottom: 20px;
-            border: 2px solid #e9ecef;
+        .no-data {
+            text-align: center;
+            color: #7f8c8d;
+            font-style: italic;
+            padding: 40px;
         }
-        .edit-section h3 {
-            color: #2c3e50;
-            margin-bottom: 15px;
-        }
-        .add-form {
-            display: grid;
-            grid-template-columns: 1fr 2fr 1fr 1fr 1fr auto;
-            gap: 10px;
-            align-items: center;
-            margin-bottom: 15px;
-        }
-        .add-form input, .add-form select {
-            padding: 8px;
-            border: 1px solid #ddd;
-            border-radius: 4px;
-        }
-        .add-btn {
-            background: #27ae60;
+        .error-message {
+            background: #e74c3c;
             color: white;
-            border: none;
-            padding: 8px 16px;
-            border-radius: 4px;
-            cursor: pointer;
-        }
-        .add-btn:hover {
-            background: #229954;
+            padding: 10px;
+            border-radius: 5px;
+            margin: 10px 0;
+            text-align: center;
         }
     </style>
 </head>
@@ -151,25 +155,20 @@
     <div class="container">
         <h1>🛒 Ausgaben-Tracker</h1>
         
-        <div class="edit-section">
-            <h3>➕ Neue Ausgabe hinzufügen</h3>
-            <div class="add-form">
-                <input type="date" id="newDate" value="">
-                <input type="text" id="newArtikel" placeholder="Artikel-Name">
-                <select id="newKategorie">
-                    <option value="Lebensmittel">Lebensmittel</option>
-                    <option value="Getränke">Getränke</option>
-                    <option value="Hygiene">Hygiene</option>
-                    <option value="Haushalt">Haushalt</option>
-                    <option value="Snacks/Süßes">Snacks/Süßes</option>
-                </select>
-                <input type="number" id="newPreis" step="0.01" placeholder="Preis">
-                <input type="text" id="newShop" placeholder="Shop">
-                <button class="add-btn" onclick="addExpense()">Hinzufügen</button>
+        <div class="upload-section">
+            <h3>CSV-Datei laden</h3>
+            <p>Laden Sie Ihre Ausgaben-CSV-Datei hoch oder geben Sie eine CSV-URL ein:</p>
+            <div class="file-input">
+                <input type="file" id="csvFile" accept=".csv,.txt" />
+                <label for="csvFile">📁 Datei auswählen</label>
             </div>
+            <div style="margin: 15px 0;">oder</div>
+            <input type="url" id="csvUrl" placeholder="https://example.com/expenses.csv" style="width: 300px; padding: 8px; border: 1px solid #ddd; border-radius: 4px;">
+            <button onclick="loadFromUrl()" style="padding: 8px 15px; background: #3498db; color: white; border: none; border-radius: 4px; cursor: pointer; margin-left: 10px;">URL laden</button>
+            <div id="errorMessage"></div>
         </div>
         
-        <table id="expenseTable">
+        <table id="expenseTable" style="display: none;">
             <thead>
                 <tr>
                     <th>Datum</th>
@@ -180,265 +179,325 @@
                 </tr>
             </thead>
             <tbody id="tableBody">
-                <!-- Wird automatisch gefüllt -->
             </tbody>
         </table>
 
-        <div class="summary-section">
+        <div id="noData" class="no-data">
+            Laden Sie eine CSV-Datei hoch, um Ihre Ausgaben anzuzeigen.
+        </div>
+
+        <div class="summary-section" id="summarySection" style="display: none;">
             <h2>📊 Zusammenfassung nach Kategorien</h2>
-            <div class="summary-grid">
-                <div class="summary-card lebensmittel">
-                    <h3>🥗 Lebensmittel</h3>
-                    <div class="amount" id="lebensmittelSum">0,00 €</div>
-                    <div class="percentage" id="lebensmittelPercent">(0,0%)</div>
-                </div>
-                <div class="summary-card getranke">
-                    <h3>🥤 Getränke</h3>
-                    <div class="amount" id="getrankeSum">0,00 €</div>
-                    <div class="percentage" id="getrankePercent">(0,0%)</div>
-                </div>
-                <div class="summary-card hygiene">
-                    <h3>🧴 Hygiene</h3>
-                    <div class="amount" id="hygieneSum">0,00 €</div>
-                    <div class="percentage" id="hygienePercent">(0,0%)</div>
-                </div>
-                <div class="summary-card haushalt">
-                    <h3>🧽 Haushalt</h3>
-                    <div class="amount" id="haushaltSum">0,00 €</div>
-                    <div class="percentage" id="haushaltPercent">(0,0%)</div>
-                </div>
-                <div class="summary-card snacks">
-                    <h3>🍿 Snacks/Süßes</h3>
-                    <div class="amount" id="snacksSum">0,00 €</div>
-                    <div class="percentage" id="snacksPercent">(0,0%)</div>
-                </div>
+            <div class="summary-grid" id="summaryGrid">
             </div>
             
             <div class="total-summary">
                 <h2>💰 Gesamtausgaben</h2>
                 <div class="amount" id="totalSum">0,00 €</div>
                 <p style="margin: 10px 0 0 0; font-size: 14px; opacity: 0.8;" id="dateRange">
-                    Zeitraum wird automatisch berechnet
+                    Zeitraum: -
                 </p>
             </div>
         </div>
     </div>
 
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.0/papaparse.min.js"></script>
     <script>
-        // Deine Ausgabendaten direkt im Code
-        const expenses = [
-            {datum: '23.08.2025', artikel: 'Bio Bananen (0.378 kg)', kategorie: 'Lebensmittel', preis: 0.75, shop: 'Penny'},
-            {datum: '23.08.2025', artikel: 'Vollkorn Sandwich', kategorie: 'Lebensmittel', preis: 1.09, shop: 'Penny'},
-            {datum: '23.08.2025', artikel: 'Heidelbeere 300g', kategorie: 'Lebensmittel', preis: 2.99, shop: 'Penny'},
-            {datum: '23.08.2025', artikel: 'Nuss-Mix', kategorie: 'Snacks/Süßes', preis: 2.99, shop: 'Penny'},
-            {datum: '23.08.2025', artikel: 'Gemüsezwiebeln', kategorie: 'Lebensmittel', preis: 1.69, shop: 'Penny'},
-            {datum: '23.08.2025', artikel: 'Knoblauch', kategorie: 'Lebensmittel', preis: 0.99, shop: 'Penny'},
-            {datum: '23.08.2025', artikel: 'Paprika rot', kategorie: 'Lebensmittel', preis: 1.69, shop: 'Penny'},
-            {datum: '23.08.2025', artikel: 'Kölln Schoko Müs', kategorie: 'Snacks/Süßes', preis: 2.49, shop: 'Penny'},
-            {datum: '23.08.2025', artikel: 'Olivenöl', kategorie: 'Lebensmittel', preis: 4.99, shop: 'Penny'},
-            {datum: '23.08.2025', artikel: 'San Fabio Sauce', kategorie: 'Lebensmittel', preis: 1.49, shop: 'Penny'},
-            {datum: '23.08.2025', artikel: 'Barilla Rustico', kategorie: 'Lebensmittel', preis: 1.89, shop: 'Penny'},
-            {datum: '23.08.2025', artikel: 'Penny Tasche', kategorie: 'Haushalt', preis: 1.99, shop: 'Penny'},
-            {datum: '30.08.2025', artikel: 'Ingwer Bio (0.136 kg)', kategorie: 'Lebensmittel', preis: 0.67, shop: 'Lidl'},
-            {datum: '30.08.2025', artikel: 'Bananen Fairtrade (1.052 kg)', kategorie: 'Lebensmittel', preis: 1.78, shop: 'Lidl'},
-            {datum: '30.08.2025', artikel: 'Kiwi Gold', kategorie: 'Lebensmittel', preis: 1.19, shop: 'Lidl'},
-            {datum: '30.08.2025', artikel: 'Avocado vorger.', kategorie: 'Lebensmittel', preis: 0.69, shop: 'Lidl'},
-            {datum: '30.08.2025', artikel: 'Bio Möhren', kategorie: 'Lebensmittel', preis: 1.49, shop: 'Lidl'},
-            {datum: '30.08.2025', artikel: 'Netzsack Saite', kategorie: 'Lebensmittel', preis: 0.39, shop: 'Lidl'},
-            {datum: '30.08.2025', artikel: 'Zitronensäfte', kategorie: 'Getränke', preis: 2.59, shop: 'Lidl'},
-            {datum: '30.08.2025', artikel: 'Blutorange Chili', kategorie: 'Getränke', preis: 4.49, shop: 'Lidl'},
-            {datum: '30.08.2025', artikel: 'Hela Ketchup delikat', kategorie: 'Lebensmittel', preis: 3.39, shop: 'Lidl'},
-            {datum: '30.08.2025', artikel: 'Heinz Ketchup zero', kategorie: 'Lebensmittel', preis: 3.79, shop: 'Lidl'},
-            {datum: '30.08.2025', artikel: 'Delikat Mayonnaise', kategorie: 'Lebensmittel', preis: 1.59, shop: 'Lidl'},
-            {datum: '30.08.2025', artikel: 'Klare Suppe mit Rind', kategorie: 'Lebensmittel', preis: 3.89, shop: 'Lidl'},
-            {datum: '30.08.2025', artikel: 'Maggi Würze', kategorie: 'Lebensmittel', preis: 2.49, shop: 'Lidl'},
-            {datum: '30.08.2025', artikel: 'Rinder-Brühe', kategorie: 'Lebensmittel', preis: 0.99, shop: 'Lidl'},
-            {datum: '30.08.2025', artikel: 'Gemüse-Brühe', kategorie: 'Lebensmittel', preis: 0.99, shop: 'Lidl'},
-            {datum: '30.08.2025', artikel: 'Löwensenf mittlelsch.', kategorie: 'Lebensmittel', preis: 1.89, shop: 'Lidl'},
-            {datum: '30.08.2025', artikel: 'Barilla Spaghettini (2x)', kategorie: 'Lebensmittel', preis: 3.58, shop: 'Lidl'},
-            {datum: '30.08.2025', artikel: 'Barilla Fusilli (2x)', kategorie: 'Lebensmittel', preis: 3.58, shop: 'Lidl'},
-            {datum: '30.08.2025', artikel: 'Passierte Tomaten (24x)', kategorie: 'Lebensmittel', preis: 15.36, shop: 'Lidl'},
-            {datum: '30.08.2025', artikel: 'Gehackte Tomaten (24x)', kategorie: 'Lebensmittel', preis: 14.16, shop: 'Lidl'},
-            {datum: '30.08.2025', artikel: 'Erbsen sehr fein (12x)', kategorie: 'Lebensmittel', preis: 10.68, shop: 'Lidl'},
-            {datum: '30.08.2025', artikel: 'Sonnenmais (12x)', kategorie: 'Lebensmittel', preis: 11.88, shop: 'Lidl'},
-            {datum: '30.08.2025', artikel: 'Geschälte Tomaten (12x)', kategorie: 'Lebensmittel', preis: 6.60, shop: 'Lidl'},
-            {datum: '30.08.2025', artikel: 'Kokosnuss Mil Normal (12x)', kategorie: 'Lebensmittel', preis: 14.28, shop: 'Lidl'},
-            {datum: '30.08.2025', artikel: 'Kidney Bohnen (12x)', kategorie: 'Lebensmittel', preis: 8.28, shop: 'Lidl'},
-            {datum: '30.08.2025', artikel: 'Walnusskerne', kategorie: 'Lebensmittel', preis: 2.99, shop: 'Lidl'},
-            {datum: '30.08.2025', artikel: 'Nuts Royal', kategorie: 'Snacks/Süßes', preis: 1.09, shop: 'Lidl'},
-            {datum: '30.08.2025', artikel: 'Vollkorn Sandwich', kategorie: 'Lebensmittel', preis: 1.69, shop: 'Lidl'},
-            {datum: '30.08.2025', artikel: 'Superfood Mexiko (2x)', kategorie: 'Lebensmittel', preis: 5.98, shop: 'Lidl'},
-            {datum: '30.08.2025', artikel: 'Pizzately M. Sauce', kategorie: 'Lebensmittel', preis: 1.99, shop: 'Lidl'},
-            {datum: '30.08.2025', artikel: 'Mozzarella gerieben', kategorie: 'Lebensmittel', preis: 1.99, shop: 'Lidl'},
-            {datum: '30.08.2025', artikel: 'Japanische Soja', kategorie: 'Lebensmittel', preis: 0.99, shop: 'Lidl'},
-            {datum: '30.08.2025', artikel: 'Rama Margarine 60%lg', kategorie: 'Lebensmittel', preis: 1.89, shop: 'Lidl'},
-            {datum: '30.08.2025', artikel: 'Bio Eier UK1 10er', kategorie: 'Lebensmittel', preis: 3.39, shop: 'Lidl'},
-            {datum: '30.08.2025', artikel: 'Kamillentee', kategorie: 'Getränke', preis: 0.89, shop: 'Lidl'},
-            {datum: '30.08.2025', artikel: 'Früchtemilch 70%', kategorie: 'Getränke', preis: 1.75, shop: 'Lidl'},
-            {datum: '30.08.2025', artikel: 'Earl Anis Fenchel Tee', kategorie: 'Getränke', preis: 1.19, shop: 'Lidl'},
-            {datum: '30.08.2025', artikel: 'Valensina Nektar ACE (6x)', kategorie: 'Getränke', preis: 8.70, shop: 'Lidl'},
-            {datum: '30.08.2025', artikel: 'Pfand 0.25l (6x)', kategorie: 'Getränke', preis: 1.50, shop: 'Lidl'},
-            {datum: '30.08.2025', artikel: 'Lipton Pfirsich Zero (6x)', kategorie: 'Getränke', preis: 7.74, shop: 'Lidl'},
-            {datum: '30.08.2025', artikel: 'Pfand 0.25l M (6x)', kategorie: 'Getränke', preis: 1.50, shop: 'Lidl'},
-            {datum: '30.08.2025', artikel: 'Funny Frisch ungarisch', kategorie: 'Snacks/Süßes', preis: 1.99, shop: 'Lidl'},
-            {datum: '30.08.2025', artikel: 'Märchenwelt Sauer (2x)', kategorie: 'Snacks/Süßes', preis: 1.98, shop: 'Lidl'},
-            {datum: '30.08.2025', artikel: 'Spülmaschpflege', kategorie: 'Haushalt', preis: 1.45, shop: 'Lidl'},
-            {datum: '30.08.2025', artikel: 'Colorwaschmittel', kategorie: 'Haushalt', preis: 4.25, shop: 'Lidl'},
-            {datum: '30.08.2025', artikel: 'Kalkstopp Tabs', kategorie: 'Haushalt', preis: 3.25, shop: 'Lidl'},
-            {datum: '30.08.2025', artikel: 'WS Spezial-Salz', kategorie: 'Haushalt', preis: 0.80, shop: 'Lidl'},
-            {datum: '30.08.2025', artikel: 'Somat Ex.4in1ca.80AM', kategorie: 'Haushalt', preis: 12.99, shop: 'Lidl'},
-            {datum: '30.08.2025', artikel: 'WC Rein. Power Lemon', kategorie: 'Haushalt', preis: 0.95, shop: 'Lidl'},
-            {datum: '30.08.2025', artikel: 'Colgate Sens White A', kategorie: 'Hygiene', preis: 4.89, shop: 'Lidl'},
-            {datum: '30.08.2025', artikel: 'Swiffer Starterset', kategorie: 'Haushalt', preis: 4.49, shop: 'Lidl'},
-            {datum: '30.08.2025', artikel: 'Aluminiumfolie', kategorie: 'Haushalt', preis: 2.89, shop: 'Lidl'},
-            {datum: '30.08.2025', artikel: 'Toilettenpapier 3lg.', kategorie: 'Hygiene', preis: 3.77, shop: 'Lidl'},
-            {datum: '30.08.2025', artikel: 'Küchentücher 3-lagig', kategorie: 'Haushalt', preis: 2.85, shop: 'Lidl'}
-        ];
-
-        // Neue Ausgabe hinzufügen
-        function addExpense() {
-            const datum = document.getElementById('newDate').value;
-            const artikel = document.getElementById('newArtikel').value;
-            const kategorie = document.getElementById('newKategorie').value;
-            const preis = parseFloat(document.getElementById('newPreis').value);
-            const shop = document.getElementById('newShop').value;
-
-            if (!datum || !artikel || !preis || !shop) {
-                alert('Bitte alle Felder ausfüllen!');
+        let expenseData = [];
+        
+        const categoryConfig = {
+            'lebensmittel': { name: '🥗 Lebensmittel', color: '#27ae60' },
+            'getränke': { name: '🥤 Getränke', color: '#3498db' },
+            'hygiene': { name: '🧴 Hygiene', color: '#e74c3c' },
+            'snacks': { name: '🍿 Snacks/Süßes', color: '#9b59b6' },
+            'haushalt': { name: '🧽 Haushalt', color: '#f39c12' }
+        };
+        
+        // File input event listener
+        document.getElementById('csvFile').addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            if (file) {
+                loadCsvFile(file);
+            }
+        });
+        
+        function loadCsvFile(file) {
+            Papa.parse(file, {
+                header: true,
+                skipEmptyLines: true,
+                dynamicTyping: false,
+                delimitersToGuess: [',', ';', '\t'],
+                complete: function(results) {
+                    if (results.errors.length > 0) {
+                        showError('Fehler beim Parsen der CSV-Datei: ' + results.errors[0].message);
+                        return;
+                    }
+                    processExpenseData(results.data);
+                },
+                error: function(error) {
+                    showError('Fehler beim Laden der Datei: ' + error.message);
+                }
+            });
+        }
+        
+        function loadFromUrl() {
+            const url = document.getElementById('csvUrl').value.trim();
+            if (!url) {
+                showError('Bitte geben Sie eine gültige URL ein.');
                 return;
             }
-
-            // Datum konvertieren (von YYYY-MM-DD zu DD.MM.YYYY)
-            const [year, month, day] = datum.split('-');
-            const germanDate = `${day}.${month}.${year}`;
-
-            expenses.push({
-                datum: germanDate,
-                artikel: artikel,
-                kategorie: kategorie,
-                preis: preis,
-                shop: shop
-            });
-
-            // Formular zurücksetzen
-            document.getElementById('newDate').value = '';
-            document.getElementById('newArtikel').value = '';
-            document.getElementById('newPreis').value = '';
-            document.getElementById('newShop').value = '';
-
-            // Tabelle neu laden
-            displayExpenses();
-            calculateSums();
+            
+            fetch(url)
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error('HTTP ' + response.status + ': ' + response.statusText);
+                    }
+                    return response.text();
+                })
+                .then(csvText => {
+                    Papa.parse(csvText, {
+                        header: true,
+                        skipEmptyLines: true,
+                        dynamicTyping: false,
+                        delimitersToGuess: [',', ';', '\t'],
+                        complete: function(results) {
+                            if (results.errors.length > 0) {
+                                showError('Fehler beim Parsen der CSV-Datei: ' + results.errors[0].message);
+                                return;
+                            }
+                            processExpenseData(results.data);
+                        }
+                    });
+                })
+                .catch(error => {
+                    showError('Fehler beim Laden der URL: ' + error.message);
+                });
         }
-
-        // Tabelle füllen
-        function displayExpenses() {
-            const tbody = document.getElementById('tableBody');
-            tbody.innerHTML = '';
+        
+        function processExpenseData(data) {
+            clearError();
             
-            // Nach Datum sortieren
-            const sortedExpenses = expenses.sort((a, b) => {
-                const dateA = new Date(a.datum.split('.').reverse().join('-'));
-                const dateB = new Date(b.datum.split('.').reverse().join('-'));
-                return dateA - dateB;
+            // Validate and clean data
+            expenseData = data.filter(row => {
+                return row.Datum && row.Artikel && row.Kategorie && row.Preis && row.Shop;
+            }).map(row => {
+                // Clean headers by removing whitespace
+                const cleanRow = {};
+                Object.keys(row).forEach(key => {
+                    cleanRow[key.trim()] = row[key];
+                });
+                
+                return {
+                    datum: cleanRow.Datum?.trim() || '',
+                    artikel: cleanRow.Artikel?.trim() || '',
+                    kategorie: cleanRow.Kategorie?.trim() || '',
+                    preis: parseFloat((cleanRow.Preis || '0').toString().replace(',', '.')),
+                    shop: cleanRow.Shop?.trim() || ''
+                };
             });
             
-            sortedExpenses.forEach(expense => {
+            if (expenseData.length === 0) {
+                showError('Keine gültigen Daten in der CSV-Datei gefunden. Stellen Sie sicher, dass die Spalten "Datum", "Artikel", "Kategorie", "Preis" und "Shop" vorhanden sind.');
+                return;
+            }
+            
+            displayTable();
+            calculateAndDisplaySummary();
+            
+            document.getElementById('noData').style.display = 'none';
+            document.getElementById('expenseTable').style.display = 'table';
+            document.getElementById('summarySection').style.display = 'block';
+        }
+        
+        function displayTable() {
+            const tableBody = document.getElementById('tableBody');
+            tableBody.innerHTML = '';
+            
+            expenseData.forEach(expense => {
                 const row = document.createElement('tr');
-                const categoryClass = 'category-' + expense.kategorie.toLowerCase()
-                    .replace(/[äöüß]/g, (match) => {
-                        const map = {'ä': 'a', 'ö': 'o', 'ü': 'u', 'ß': 'ss'};
-                        return map[match];
-                    })
-                    .replace(/[^a-z]/g, '');
+                const categoryClass = getCategoryClass(expense.kategorie);
                 
                 row.innerHTML = `
-                    <td>${expense.datum}</td>
+                    <td class="date">${expense.datum}</td>
                     <td>${expense.artikel}</td>
                     <td class="${categoryClass}">${expense.kategorie}</td>
                     <td class="price">${expense.preis.toFixed(2).replace('.', ',')}</td>
                     <td>${expense.shop}</td>
                 `;
-                tbody.appendChild(row);
+                tableBody.appendChild(row);
             });
         }
-
-        // Summen berechnen
-        function calculateSums() {
-            let sums = {
-                lebensmittel: 0,
-                getränke: 0,
-                hygiene: 0,
-                haushalt: 0,
-                snacks: 0,
-                total: 0
-            };
-
-            let dates = [];
-
-            expenses.forEach(expense => {
-                const category = expense.kategorie.toLowerCase();
-                const price = expense.preis;
-                
-                if (category.includes('lebensmittel')) {
-                    sums.lebensmittel += price;
-                } else if (category.includes('getränke')) {
-                    sums.getränke += price;
-                } else if (category.includes('hygiene')) {
-                    sums.hygiene += price;
-                } else if (category.includes('haushalt')) {
-                    sums.haushalt += price;
-                } else if (category.includes('snacks') || category.includes('süßes')) {
-                    sums.snacks += price;
+        
+        function getCategoryClass(kategorie) {
+            const kat = kategorie.toLowerCase();
+            if (kat.includes('lebensmittel')) return 'category-lebensmittel';
+            if (kat.includes('getränke')) return 'category-getränke';
+            if (kat.includes('hygiene')) return 'category-hygiene';
+            if (kat.includes('snacks') || kat.includes('süß')) return 'category-snacks';
+            if (kat.includes('haushalt')) return 'category-haushalt';
+            return '';
+        }
+        
+        function calculateAndDisplaySummary() {
+            const sums = {};
+            let total = 0;
+            
+            // Initialize all categories
+            Object.keys(categoryConfig).forEach(key => {
+                sums[key] = 0;
+            });
+            
+            // Group expenses by category
+            const groupedExpenses = {};
+            expenseData.forEach(expense => {
+                const categoryKey = getCategoryKey(expense.kategorie);
+                if (!groupedExpenses[categoryKey]) {
+                    groupedExpenses[categoryKey] = 0;
                 }
+                groupedExpenses[categoryKey] += expense.preis;
+                total += expense.preis;
+            });
+            
+            // Update sums
+            Object.keys(groupedExpenses).forEach(key => {
+                if (sums.hasOwnProperty(key)) {
+                    sums[key] = groupedExpenses[key];
+                }
+            });
+            
+            displaySummaryCards(sums, total);
+            updateDateRange();
+        }
+        
+        function getCategoryKey(kategorie) {
+            const kat = kategorie.toLowerCase();
+            if (kat.includes('lebensmittel')) return 'lebensmittel';
+            if (kat.includes('getränke')) return 'getränke';
+            if (kat.includes('hygiene')) return 'hygiene';
+            if (kat.includes('snacks') || kat.includes('süß')) return 'snacks';
+            if (kat.includes('haushalt')) return 'haushalt';
+            return 'sonstiges';
+        }
+        
+        function displaySummaryCards(sums, total) {
+            const summaryGrid = document.getElementById('summaryGrid');
+            summaryGrid.innerHTML = '';
+            
+            // Add configured categories
+            Object.keys(categoryConfig).forEach(key => {
+                const config = categoryConfig[key];
+                const amount = sums[key] || 0;
+                const percentage = total > 0 ? (amount / total * 100).toFixed(1) : 0;
                 
-                sums.total += price;
-                dates.push(expense.datum);
+                const card = document.createElement('div');
+                card.className = `summary-card ${key}`;
+                card.innerHTML = `
+                    <h3>${config.name}</h3>
+                    <div class="amount">${amount.toFixed(2).replace('.', ',')} €</div>
+                    <div class="percentage">(${percentage}%)</div>
+                `;
+                summaryGrid.appendChild(card);
             });
-
-            // Datum-Range berechnen
-            const uniqueDates = [...new Set(dates)].sort((a, b) => {
-                const dateA = new Date(a.split('.').reverse().join('-'));
-                const dateB = new Date(b.split('.').reverse().join('-'));
-                return dateA - dateB;
+            
+            // Add any additional categories found in data
+            const foundCategories = [...new Set(expenseData.map(e => getCategoryKey(e.kategorie)))];
+            foundCategories.forEach(key => {
+                if (!categoryConfig[key] && sums[key] > 0) {
+                    const amount = sums[key];
+                    const percentage = total > 0 ? (amount / total * 100).toFixed(1) : 0;
+                    
+                    const card = document.createElement('div');
+                    card.className = 'summary-card';
+                    card.innerHTML = `
+                        <h3>📦 ${key.charAt(0).toUpperCase() + key.slice(1)}</h3>
+                        <div class="amount">${amount.toFixed(2).replace('.', ',')} €</div>
+                        <div class="percentage">(${percentage}%)</div>
+                    `;
+                    summaryGrid.appendChild(card);
+                }
             });
             
-            const dateRange = uniqueDates.length > 1 
-                ? `${uniqueDates[0]} - ${uniqueDates[uniqueDates.length - 1]}`
-                : uniqueDates[0] || '';
-
-            // Update der Anzeige mit Prozenten
-            document.getElementById('lebensmittelSum').textContent = sums.lebensmittel.toFixed(2).replace('.', ',') + ' €';
-            document.getElementById('lebensmittelPercent').textContent = '(' + (sums.lebensmittel/sums.total*100).toFixed(1) + '%)';
-            
-            document.getElementById('getrankeSum').textContent = sums.getränke.toFixed(2).replace('.', ',') + ' €';
-            document.getElementById('getrankePercent').textContent = '(' + (sums.getränke/sums.total*100).toFixed(1) + '%)';
-            
-            document.getElementById('hygieneSum').textContent = sums.hygiene.toFixed(2).replace('.', ',') + ' €';
-            document.getElementById('hygienePercent').textContent = '(' + (sums.hygiene/sums.total*100).toFixed(1) + '%)';
-            
-            document.getElementById('haushaltSum').textContent = sums.haushalt.toFixed(2).replace('.', ',') + ' €';
-            document.getElementById('haushaltPercent').textContent = '(' + (sums.haushalt/sums.total*100).toFixed(1) + '%)';
-            
-            document.getElementById('snacksSum').textContent = sums.snacks.toFixed(2).replace('.', ',') + ' €';
-            document.getElementById('snacksPercent').textContent = '(' + (sums.snacks/sums.total*100).toFixed(1) + '%)';
-            
-            document.getElementById('totalSum').textContent = sums.total.toFixed(2).replace('.', ',') + ' €';
-            document.getElementById('dateRange').textContent = 'Zeitraum: ' + dateRange;
+            document.getElementById('totalSum').textContent = total.toFixed(2).replace('.', ',') + ' €';
         }
-
-        // Heute als Standard-Datum setzen
-        function setTodayAsDefault() {
-            const today = new Date();
-            const germanToday = today.toISOString().split('T')[0];
-            document.getElementById('newDate').value = germanToday;
+        
+        function updateDateRange() {
+            if (expenseData.length === 0) return;
+            
+            const dates = expenseData.map(e => e.datum).sort();
+            const startDate = dates[0];
+            const endDate = dates[dates.length - 1];
+            
+            const dateRangeText = startDate === endDate 
+                ? `Datum: ${startDate}` 
+                : `Zeitraum: ${startDate} - ${endDate}`;
+            
+            document.getElementById('dateRange').textContent = dateRangeText;
         }
-
-        // Beim Laden der Seite
+        
+        function showError(message) {
+            const errorDiv = document.getElementById('errorMessage');
+            errorDiv.innerHTML = `<div class="error-message">${message}</div>`;
+        }
+        
+        function clearError() {
+            document.getElementById('errorMessage').innerHTML = '';
+        }
+        
+        // Demo CSV laden (für GitHub Pages Demo)
+        function loadDemoData() {
+            const demoCSV = `Datum,Artikel,Kategorie,Preis,Shop
+23.08.2025,Bio Bananen (0.378 kg),Lebensmittel,0.75,Penny
+23.08.2025,Vollkorn Sandwich,Lebensmittel,1.09,Penny
+23.08.2025,Heidelbeere 300g,Lebensmittel,2.99,Penny
+30.08.2025,Kamillentee,Getränke,0.89,Lidl
+30.08.2025,Colgate Sens White A,Hygiene,4.89,Lidl`;
+            
+            Papa.parse(demoCSV, {
+                header: true,
+                skipEmptyLines: true,
+                dynamicTyping: false,
+                complete: function(results) {
+                    processExpenseData(results.data);
+                }
+            });
+        }
+        
+        // Prüfen ob es eine demo.csv oder expenses.csv im gleichen Verzeichnis gibt
         window.addEventListener('load', function() {
-            displayExpenses();
-            calculateSums();
-            setTodayAsDefault();
+            // Versuche automatisch eine CSV-Datei zu laden
+            const possibleFiles = ['expenses.csv', 'demo.csv', 'ausgaben.csv'];
+            
+            async function tryLoadFile(filename) {
+                try {
+                    const response = await fetch(filename);
+                    if (response.ok) {
+                        const csvText = await response.text();
+                        Papa.parse(csvText, {
+                            header: true,
+                            skipEmptyLines: true,
+                            dynamicTyping: false,
+                            delimitersToGuess: [',', ';', '\t'],
+                            complete: function(results) {
+                                if (results.data.length > 0) {
+                                    processExpenseData(results.data);
+                                }
+                            }
+                        });
+                        return true;
+                    }
+                } catch (error) {
+                    // Datei existiert nicht oder kann nicht geladen werden
+                }
+                return false;
+            }
+            
+            // Versuche Dateien der Reihe nach zu laden
+            (async () => {
+                for (const filename of possibleFiles) {
+                    const loaded = await tryLoadFile(filename);
+                    if (loaded) break;
+                }
+            })();
         });
     </script>
 </body>
