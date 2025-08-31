@@ -258,16 +258,22 @@ tr:hover {
     text-align: center;
 }
 
+.month-buttons {
+  display: grid;
+  grid-template-columns: repeat(13, 1fr); /* 12 Monate + "Alle" = 13 Buttons */
+  gap: 8px;
+}
+
 .month-btn {
-    padding: 8px 15px;
-    margin: 3px;
-    background: #3498db;
-    color: white;
-    border: none;
-    border-radius: 5px;
-    cursor: pointer;
-    font-size: 14px;
-    transition: background-color 0.3s;
+  padding: 8px 0;
+  background: #3498db;
+  color: white;
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
+  font-size: 14px;
+  transition: background-color 0.3s;
+  width: 100%; /* Jeder Button füllt seine Grid-Zelle */
 }
 
 .month-btn:hover {
