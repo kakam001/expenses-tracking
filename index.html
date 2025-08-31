@@ -154,6 +154,25 @@
             font-size: 32px;
             font-weight: bold;
         }
+        
+        .chart-section {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            margin-top: 20px;
+            border: 1px solid #ddd;
+        }
+        .chart-container {
+            position: relative;
+            width: 100%;
+            max-width: 600px;
+            margin: 0 auto;
+        }
+        #shopChart {
+            max-width: 100%;
+            height: auto;
+        }
+        
         .price {
             text-align: center;
             font-weight: bold;
@@ -304,20 +323,30 @@
                 </p>
             </div>
         </div>
+
+        <div class="chart-section" id="chartSection" style="display: none;">
+            <h2>🏪 Ausgaben nach Shops</h2>
+            <div class="chart-container">
+                <canvas id="shopChart" width="400" height="400"></canvas>
+            </div>
+        </div>
     </div>
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.0/papaparse.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js"></script>
     <script>
         let expenseData = [];
         let filteredData = [];
         let currentMonth = 'all';
+        let shopChart = null;
         
+        // Neue Reihenfolge: Lebensmittel, Getränke, Haushalt, Hygiene, Snacks/Süßes
         const categoryConfig = {
             'lebensmittel': { name: '🥗 Lebensmittel', color: '#27ae60' },
             'getränke': { name: '🥤 Getränke', color: '#3498db' },
+            'haushalt': { name: '🧽 Haushalt', color: '#f39c12' },
             'hygiene': { name: '🧴 Hygiene', color: '#e74c3c' },
-            'snacks': { name: '🍿 Snacks/Süßes', color: '#9b59b6' },
-            'haushalt': { name: '🧽 Haushalt', color: '#f39c12' }
+            'snacks': { name: '🍿 Snacks/Süßes', color: '#9b59b6' }
         };
         
         // File input event listener
@@ -419,9 +448,11 @@
         function displayInterface() {
             displayTable();
             calculateAndDisplaySummary();
+            createShopChart();
             
             document.getElementById('noData').style.display = 'none';
             document.getElementById('summarySection').style.display = 'block';
+            document.getElementById('chartSection').style.display = 'block';
             document.getElementById('monthSelector').style.display = 'block';
             document.getElementById('tableToggle').style.display = 'block';
             
@@ -562,7 +593,7 @@
             const summaryGrid = document.getElementById('summaryGrid');
             summaryGrid.innerHTML = '';
             
-            // Add configured categories
+            // Add configured categories in the new order
             Object.keys(categoryConfig).forEach(key => {
                 const config = categoryConfig[key];
                 const amount = sums[key] || 0;
@@ -597,6 +628,98 @@
             });
             
             document.getElementById('totalSum').textContent = total.toFixed(2).replace('.', ',') + ' €';
+        }
+        
+        function createShopChart() {
+            const ctx = document.getElementById('shopChart').getContext('2d');
+            
+            // Group expenses by shop
+            const shopSums = {};
+            filteredData.forEach(expense => {
+                if (!shopSums[expense.shop]) {
+                    shopSums[expense.shop] = 0;
+                }
+                shopSums[expense.shop] += expense.preis;
+            });
+            
+            // Sort shops by total amount (descending)
+            const sortedShops = Object.entries(shopSums)
+                .sort((a, b) => b[1] - a[1])
+                .slice(0, 10); // Limit to top 10 shops for better readability
+            
+            const total = Object.values(shopSums).reduce((sum, val) => sum + val, 0);
+            
+            // Generate colors for each shop
+            const colors = [
+                '#FF6384', '#36A2EB', '#FFCE56', '#4BC0C0', '#9966FF',
+                '#FF9F40', '#FF6384', '#C9CBCF', '#4BC0C0', '#FF6384'
+            ];
+            
+            const chartData = {
+                labels: sortedShops.map(([shop, amount]) => {
+                    const percentage = total > 0 ? ((amount / total) * 100).toFixed(1) : 0;
+                    return `${shop}\n${amount.toFixed(2).replace('.', ',')}€ (${percentage}%)`;
+                }),
+                datasets: [{
+                    data: sortedShops.map(([shop, amount]) => amount),
+                    backgroundColor: colors.slice(0, sortedShops.length),
+                    borderColor: '#fff',
+                    borderWidth: 2
+                }]
+            };
+            
+            // Destroy existing chart if it exists
+            if (shopChart) {
+                shopChart.destroy();
+            }
+            
+            shopChart = new Chart(ctx, {
+                type: 'pie',
+                data: chartData,
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: true,
+                    plugins: {
+                        legend: {
+                            position: 'bottom',
+                            labels: {
+                                padding: 20,
+                                usePointStyle: true,
+                                font: {
+                                    size: 12
+                                },
+                                generateLabels: function(chart) {
+                                    const data = chart.data;
+                                    if (data.labels.length && data.datasets.length) {
+                                        return data.labels.map((label, i) => {
+                                            const shop = label.split('\n')[0];
+                                            const amount = label.split('\n')[1];
+                                            return {
+                                                text: `${shop} - ${amount}`,
+                                                fillStyle: data.datasets[0].backgroundColor[i],
+                                                strokeStyle: data.datasets[0].borderColor,
+                                                lineWidth: data.datasets[0].borderWidth,
+                                                pointStyle: 'circle'
+                                            };
+                                        });
+                                    }
+                                    return [];
+                                }
+                            }
+                        },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    const shop = context.label.split('\n')[0];
+                                    const amount = context.parsed.toFixed(2).replace('.', ',');
+                                    const percentage = total > 0 ? ((context.parsed / total) * 100).toFixed(1) : 0;
+                                    return `${shop}: ${amount}€ (${percentage}%)`;
+                                }
+                            }
+                        }
+                    }
+                }
+            });
         }
         
         function updateDateRange() {
