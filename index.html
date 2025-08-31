@@ -57,6 +57,12 @@
             text-align: left;
             border-bottom: 1px solid #ddd;
         }
+        th:nth-child(4), td:nth-child(4) {
+            text-align: center !important;
+        }
+        th:nth-child(5), td:nth-child(5) {
+            text-align: center !important;
+        }
         th {
             background-color: #3498db;
             color: white;
@@ -233,19 +239,25 @@
             </div>
         </div>
 
-        <table id="expenseTable" style="display: none;">
-            <thead>
-                <tr>
-                    <th>Datum</th>
-                    <th>Artikel</th>
-                    <th>Kategorie</th>
-                    <th>Preis (€)</th>
-                    <th>Shop</th>
-                </tr>
-            </thead>
-            <tbody id="tableBody">
-            </tbody>
-        </table>
+        <div class="table-toggle" id="tableToggle" style="display: none;">
+            <button class="toggle-btn" onclick="toggleTable()">📋 Details anzeigen</button>
+        </div>
+
+        <div class="table-container" id="tableContainer">
+            <table id="expenseTable">
+                <thead>
+                    <tr>
+                        <th>Datum</th>
+                        <th>Artikel</th>
+                        <th>Kategorie</th>
+                        <th>Preis (€)</th>
+                        <th>Shop</th>
+                    </tr>
+                </thead>
+                <tbody id="tableBody">
+                </tbody>
+            </table>
+        </div>
 
         <div id="noData" class="no-data">
             Laden Sie eine CSV-Datei hoch, um Ihre Ausgaben anzuzeigen.
@@ -381,9 +393,23 @@
             calculateAndDisplaySummary();
             
             document.getElementById('noData').style.display = 'none';
-            document.getElementById('expenseTable').style.display = 'table';
+            document.getElementById('tableContainer').style.display = 'block';
             document.getElementById('summarySection').style.display = 'block';
             document.getElementById('monthSelector').style.display = 'block';
+            document.getElementById('tableToggle').style.display = 'block';
+        }
+        
+        function toggleTable() {
+            const tableContainer = document.getElementById('tableContainer');
+            const toggleBtn = document.querySelector('.toggle-btn');
+            
+            if (tableContainer.classList.contains('expanded')) {
+                tableContainer.classList.remove('expanded');
+                toggleBtn.textContent = '📋 Details anzeigen';
+            } else {
+                tableContainer.classList.add('expanded');
+                toggleBtn.textContent = '📋 Details ausblenden';
+            }
         }
         
         function filterByMonth(month) {
@@ -430,7 +456,7 @@
                     <td>${expense.artikel}</td>
                     <td class="${categoryClass}">${expense.kategorie}</td>
                     <td class="price">${expense.preis.toFixed(2).replace('.', ',')}</td>
-                    <td>${expense.shop}</td>
+                    <td class="shop">${expense.shop}</td>
                 `;
                 tableBody.appendChild(row);
             });
