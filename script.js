@@ -264,3 +264,214 @@ function displaySummaryCards(sums, total) {
 
     const card = document.createElement('div');
     card.className = `summary-card ${key}`;
+    card.innerHTML = `
+      <h3>${config.name}</h3>
+      <div class="amount">${amount.toFixed(2).replace('.', ',')} €</div>
+      <div class="percentage">(${percentage}%)</div>
+    `;
+    summaryGrid.appendChild(card);
+  });
+
+  // Add any additional categories found in data
+  const foundCategories = [...new Set(filteredData.map(e => getCategoryKey(e.kategorie)))];
+  foundCategories.forEach(key => {
+    if (!categoryConfig[key] && sums[key] > 0) {
+      const amount = sums[key];
+      const percentage = total > 0 ? (amount / total * 100).toFixed(1) : 0;
+
+      const card = document.createElement('div');
+      card.className = 'summary-card';
+      card.innerHTML = `
+        <h3>📦 ${key.charAt(0).toUpperCase() + key.slice(1)}</h3>
+        <div class="amount">${amount.toFixed(2).replace('.', ',')} €</div>
+        <div class="percentage">(${percentage}%)</div>
+      `;
+      summaryGrid.appendChild(card);
+    }
+  });
+
+  document.getElementById('totalSum').textContent = total.toFixed(2).replace('.', ',') + ' €';
+}
+
+function createShopChart() {
+  const ctx = document.getElementById('shopChart').getContext('2d');
+
+  // Group expenses by shop
+  const shopSums = {};
+  filteredData.forEach(expense => {
+    if (!shopSums[expense.shop]) {
+      shopSums[expense.shop] = 0;
+    }
+    shopSums[expense.shop] += expense.preis;
+  });
+
+  // Sort shops by total amount (descending)
+  const sortedShops = Object.entries(shopSums)
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, 10); // Limit to top 10 shops
+
+  const total = Object.values(shopSums).reduce((sum, val) => sum + val, 0);
+
+  // Generate colors for each shop
+  const colors = [
+    '#FF6384', '#36A2EB', '#FFCE56', '#4BC0C0', '#9966FF',
+    '#FF9F40', '#FF6384', '#C9CBCF', '#4BC0C0', '#FF6384'
+  ];
+
+  const chartData = {
+    labels: sortedShops.map(([shop, amount]) => {
+      const percentage = total > 0 ? ((amount / total) * 100).toFixed(1) : 0;
+      return `${shop}\n${amount.toFixed(2).replace('.', ',')}€ (${percentage}%)`;
+    }),
+    datasets: [{
+      data: sortedShops.map(([shop, amount]) => amount),
+      backgroundColor: colors.slice(0, sortedShops.length),
+      borderColor: '#fff',
+      borderWidth: 2
+    }]
+  };
+
+  // Destroy existing chart if it exists
+  if (shopChart) {
+    shopChart.destroy();
+  }
+
+  shopChart = new Chart(ctx, {
+    type: 'pie',
+    data: chartData,
+    options: {
+      responsive: true,
+      maintainAspectRatio: true,
+      plugins: {
+        legend: {
+          position: 'bottom',
+          labels: {
+            padding: 20,
+            usePointStyle: true,
+            font: {
+              size: 12
+            },
+            generateLabels: function (chart) {
+              const data = chart.data;
+              if (data.labels.length && data.datasets.length) {
+                return data.labels.map((label, i) => {
+                  const shop = label.split('\n')[0];
+                  const amount = label.split('\n')[1];
+                  return {
+                    text: `${shop} - ${amount}`,
+                    fillStyle: data.datasets[0].backgroundColor[i],
+                    strokeStyle: data.datasets[0].borderColor,
+                    lineWidth: data.datasets[0].borderWidth,
+                    pointStyle: 'circle'
+                  };
+                });
+              }
+              return [];
+            }
+          }
+        },
+        tooltip: {
+          callbacks: {
+            label: function (context) {
+              const shop = context.label.split('\n')[0];
+              const amount = context.parsed.toFixed(2).replace('.', ',');
+              const percentage = total > 0 ? ((context.parsed / total) * 100).toFixed(1) : 0;
+              return `${shop}: ${amount}€ (${percentage}%)`;
+            }
+          }
+        }
+      }
+    }
+  });
+}
+
+function updateDateRange() {
+  if (filteredData.length === 0) {
+    document.getElementById('dateRange').textContent = 'Keine Daten für diesen Zeitraum';
+    return;
+  }
+
+  const dates = filteredData.map(e => e.datum).sort();
+  const startDate = dates[0];
+  const endDate = dates[dates.length - 1];
+
+  let dateRangeText;
+  if (currentMonth === 'all') {
+    dateRangeText = startDate === endDate
+      ? `Datum: ${startDate}`
+      : `Zeitraum: ${startDate} - ${endDate}`;
+  } else {
+    const monthNames = {
+      '01': 'Januar', '02': 'Februar', '03': 'März', '04': 'April',
+      '05': 'Mai', '06': 'Juni', '07': 'Juli', '08': 'August',
+      '09': 'September', '10': 'Oktober', '11': 'November', '12': 'Dezember'
+    };
+    dateRangeText = `${monthNames[currentMonth]} 2025 (${filteredData.length} Einträge)`;
+  }
+
+  document.getElementById('dateRange').textContent = dateRangeText;
+}
+
+function showError(message) {
+  const errorDiv = document.getElementById('errorMessage');
+  errorDiv.innerHTML = `<div class="error-message">${message}</div>`;
+}
+
+function clearError() {
+  document.getElementById('errorMessage').innerHTML = '';
+}
+
+// Demo CSV laden (für GitHub Pages Demo)
+function loadDemoData() {
+  const demoCSV = `Datum,Artikel,Kategorie,Preis,Shop
+23.08.2025,Bio Bananen (0.378 kg),Lebensmittel,0.75,Penny
+23.08.2025,Vollkorn Sandwich,Lebensmittel,1.09,Penny
+23.08.2025,Heidelbeere 300g,Lebensmittel,2.99,Penny
+30.08.2025,Kamillentee,Getränke,0.89,Lidl
+30.08.2025,Colgate Sens White A,Hygiene,4.89,Lidl`;
+
+  Papa.parse(demoCSV, {
+    header: true,
+    skipEmptyLines: true,
+    dynamicTyping: false,
+    complete: function (results) {
+      processExpenseData(results.data);
+    }
+  });
+}
+
+// Prüfen ob es eine demo.csv oder expenses.csv im gleichen Verzeichnis gibt
+window.addEventListener('load', function () {
+  const possibleFiles = ['expenses.csv', 'demo.csv', 'ausgaben.csv'];
+
+  async function tryLoadFile(filename) {
+    try {
+      const response = await fetch(filename);
+      if (response.ok) {
+        const csvText = await response.text();
+        Papa.parse(csvText, {
+          header: true,
+          skipEmptyLines: true,
+          dynamicTyping: false,
+          delimitersToGuess: [',', ';', '\t'],
+          complete: function (results) {
+            if (results.data.length > 0) {
+              processExpenseData(results.data);
+            }
+          }
+        });
+        return true;
+      }
+    } catch (error) {
+      // Datei existiert nicht oder kann nicht geladen werden
+    }
+    return false;
+  }
+
+  (async () => {
+    for (const filename of possibleFiles) {
+      const loaded = await tryLoadFile(filename);
+      if (loaded) break;
+    }
+  })();
+});
