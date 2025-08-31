@@ -149,6 +149,26 @@
             margin: 10px 0;
             text-align: center;
         }
+        .month-btn {
+            padding: 8px 15px;
+            margin: 3px;
+            background: #3498db;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: background-color 0.3s;
+        }
+        .month-btn:hover {
+            background: #2980b9;
+        }
+        .month-btn.active {
+            background: #27ae60;
+        }
+        .month-btn.active:hover {
+            background: #229954;
+        }
     </style>
 </head>
 <body>
@@ -168,6 +188,25 @@
             <div id="errorMessage"></div>
         </div>
         
+        <div id="monthSelector" style="display: none; text-align: center; margin-bottom: 20px; background: #ecf0f1; padding: 15px; border-radius: 8px;">
+            <h3 style="margin: 0 0 15px 0; color: #2c3e50;">Monat auswählen (2025)</h3>
+            <div style="display: flex; flex-wrap: wrap; justify-content: center; gap: 10px;">
+                <button class="month-btn" onclick="filterByMonth('all')" data-month="all">Alle</button>
+                <button class="month-btn" onclick="filterByMonth('01')" data-month="01">Jan</button>
+                <button class="month-btn" onclick="filterByMonth('02')" data-month="02">Feb</button>
+                <button class="month-btn" onclick="filterByMonth('03')" data-month="03">Mär</button>
+                <button class="month-btn" onclick="filterByMonth('04')" data-month="04">Apr</button>
+                <button class="month-btn" onclick="filterByMonth('05')" data-month="05">Mai</button>
+                <button class="month-btn" onclick="filterByMonth('06')" data-month="06">Jun</button>
+                <button class="month-btn" onclick="filterByMonth('07')" data-month="07">Jul</button>
+                <button class="month-btn" onclick="filterByMonth('08')" data-month="08">Aug</button>
+                <button class="month-btn" onclick="filterByMonth('09')" data-month="09">Sep</button>
+                <button class="month-btn" onclick="filterByMonth('10')" data-month="10">Okt</button>
+                <button class="month-btn" onclick="filterByMonth('11')" data-month="11">Nov</button>
+                <button class="month-btn" onclick="filterByMonth('12')" data-month="12">Dez</button>
+            </div>
+        </div>
+
         <table id="expenseTable" style="display: none;">
             <thead>
                 <tr>
@@ -204,6 +243,8 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.0/papaparse.min.js"></script>
     <script>
         let expenseData = [];
+        let filteredData = [];
+        let currentMonth = 'all';
         
         const categoryConfig = {
             'lebensmittel': { name: '🥗 Lebensmittel', color: '#27ae60' },
@@ -292,7 +333,7 @@
                     artikel: cleanRow.Artikel?.trim() || '',
                     kategorie: cleanRow.Kategorie?.trim() || '',
                     preis: parseFloat((cleanRow.Preis || '0').toString().replace(',', '.')),
-                    shop: cleanRow.Shop?.trim() || ''
+                    shop: cleanRow.Shop?.trim || ''
                 };
             });
             
@@ -301,19 +342,60 @@
                 return;
             }
             
+            // Initialize with all data
+            currentMonth = 'all';
+            filteredData = expenseData;
+            
+            displayInterface();
+            updateMonthButtons();
+        }
+        
+        function displayInterface() {
             displayTable();
             calculateAndDisplaySummary();
             
             document.getElementById('noData').style.display = 'none';
             document.getElementById('expenseTable').style.display = 'table';
             document.getElementById('summarySection').style.display = 'block';
+            document.getElementById('monthSelector').style.display = 'block';
+        }
+        
+        function filterByMonth(month) {
+            currentMonth = month;
+            
+            if (month === 'all') {
+                filteredData = expenseData;
+            } else {
+                filteredData = expenseData.filter(expense => {
+                    const dateParts = expense.datum.split('.');
+                    if (dateParts.length >= 3) {
+                        const monthStr = dateParts[1].padStart(2, '0');
+                        const year = dateParts[2];
+                        return monthStr === month && year === '2025';
+                    }
+                    return false;
+                });
+            }
+            
+            updateMonthButtons();
+            displayInterface();
+        }
+        
+        function updateMonthButtons() {
+            const buttons = document.querySelectorAll('.month-btn');
+            buttons.forEach(btn => {
+                btn.classList.remove('active');
+                if (btn.getAttribute('data-month') === currentMonth) {
+                    btn.classList.add('active');
+                }
+            });
         }
         
         function displayTable() {
             const tableBody = document.getElementById('tableBody');
             tableBody.innerHTML = '';
             
-            expenseData.forEach(expense => {
+            filteredData.forEach(expense => {
                 const row = document.createElement('tr');
                 const categoryClass = getCategoryClass(expense.kategorie);
                 
@@ -349,7 +431,7 @@
             
             // Group expenses by category
             const groupedExpenses = {};
-            expenseData.forEach(expense => {
+            filteredData.forEach(expense => {
                 const categoryKey = getCategoryKey(expense.kategorie);
                 if (!groupedExpenses[categoryKey]) {
                     groupedExpenses[categoryKey] = 0;
@@ -400,7 +482,7 @@
             });
             
             // Add any additional categories found in data
-            const foundCategories = [...new Set(expenseData.map(e => getCategoryKey(e.kategorie)))];
+            const foundCategories = [...new Set(filteredData.map(e => getCategoryKey(e.kategorie)))];
             foundCategories.forEach(key => {
                 if (!categoryConfig[key] && sums[key] > 0) {
                     const amount = sums[key];
@@ -421,15 +503,28 @@
         }
         
         function updateDateRange() {
-            if (expenseData.length === 0) return;
+            if (filteredData.length === 0) {
+                document.getElementById('dateRange').textContent = 'Keine Daten für diesen Zeitraum';
+                return;
+            }
             
-            const dates = expenseData.map(e => e.datum).sort();
+            const dates = filteredData.map(e => e.datum).sort();
             const startDate = dates[0];
             const endDate = dates[dates.length - 1];
             
-            const dateRangeText = startDate === endDate 
-                ? `Datum: ${startDate}` 
-                : `Zeitraum: ${startDate} - ${endDate}`;
+            let dateRangeText;
+            if (currentMonth === 'all') {
+                dateRangeText = startDate === endDate 
+                    ? `Datum: ${startDate}` 
+                    : `Zeitraum: ${startDate} - ${endDate}`;
+            } else {
+                const monthNames = {
+                    '01': 'Januar', '02': 'Februar', '03': 'März', '04': 'April',
+                    '05': 'Mai', '06': 'Juni', '07': 'Juli', '08': 'August',
+                    '09': 'September', '10': 'Oktober', '11': 'November', '12': 'Dezember'
+                };
+                dateRangeText = `${monthNames[currentMonth]} 2025 (${filteredData.length} Einträge)`;
+            }
             
             document.getElementById('dateRange').textContent = dateRangeText;
         }
