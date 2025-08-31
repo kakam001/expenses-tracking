@@ -359,7 +359,7 @@
                     artikel: cleanRow.Artikel?.trim() || '',
                     kategorie: cleanRow.Kategorie?.trim() || '',
                     preis: parseFloat((cleanRow.Preis || '0').toString().replace(',', '.')),
-                    shop: cleanRow.Shop?.trim || ''
+                    shop: cleanRow.Shop?.trim() || ''
                 };
             });
             
