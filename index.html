@@ -128,8 +128,11 @@
             font-weight: bold;
         }
         .price {
-            text-align: right;
+            text-align: center;
             font-weight: bold;
+        }
+        .shop {
+            text-align: center;
         }
         .date {
             font-size: 12px;
@@ -168,6 +171,29 @@
         }
         .month-btn.active:hover {
             background: #229954;
+        }
+        .table-toggle {
+            text-align: center;
+            margin: 20px 0;
+        }
+        .toggle-btn {
+            padding: 10px 20px;
+            background: #3498db;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+            transition: background-color 0.3s;
+        }
+        .toggle-btn:hover {
+            background: #2980b9;
+        }
+        .table-container {
+            display: none;
+        }
+        .table-container.expanded {
+            display: block;
         }
     </style>
 </head>
