@@ -30,6 +30,27 @@
             border-radius: 8px;
             margin-bottom: 30px;
             text-align: center;
+            transition: all 0.3s ease;
+        }
+        .upload-section.collapsed {
+            padding: 8px 20px;
+            cursor: pointer;
+            background: #ddd;
+        }
+        .upload-section.collapsed:hover {
+            background: #ccc;
+        }
+        .upload-content {
+            display: block;
+        }
+        .upload-section.collapsed .upload-content {
+            display: none;
+        }
+        .upload-section.collapsed h3 {
+            margin: 0;
+            font-size: 14px;
+            color: #7f8c8d;
+            font-weight: normal;
         }
         .file-input {
             margin: 10px;
@@ -207,17 +228,24 @@
     <div class="container">
         <h1>🛒 Ausgaben-Tracker</h1>
         
-        <div class="upload-section">
-            <h3>CSV-Datei laden</h3>
-            <p>Laden Sie Ihre Ausgaben-CSV-Datei hoch oder geben Sie eine CSV-URL ein:</p>
-            <div class="file-input">
-                <input type="file" id="csvFile" accept=".csv,.txt" />
-                <label for="csvFile">📁 Datei auswählen</label>
+        <div class="upload-section" id="uploadSection" onclick="expandUpload()">
+            <div class="upload-header">
+                <h3>CSV-Datei laden</h3>
             </div>
-            <div style="margin: 15px 0;">oder</div>
-            <input type="url" id="csvUrl" placeholder="https://example.com/expenses.csv" style="width: 300px; padding: 8px; border: 1px solid #ddd; border-radius: 4px;">
-            <button onclick="loadFromUrl()" style="padding: 8px 15px; background: #3498db; color: white; border: none; border-radius: 4px; cursor: pointer; margin-left: 10px;">URL laden</button>
-            <div id="errorMessage"></div>
+            <div class="upload-content">
+                <p><strong>Laden Sie eine CSV-Datei mit allen Ihren Ausgaben hoch.</strong></p>
+                <p>Erforderliche Spalten: <code>Datum,Artikel,Kategorie,Preis,Shop</code></p>
+                <div class="file-input" onclick="event.stopPropagation();">
+                    <input type="file" id="csvFile" accept=".csv,.txt" />
+                    <label for="csvFile">📁 Datei auswählen</label>
+                </div>
+                <div style="margin: 15px 0;">oder</div>
+                <div onclick="event.stopPropagation();">
+                    <input type="url" id="csvUrl" placeholder="https://example.com/expenses.csv" style="width: 300px; padding: 8px; border: 1px solid #ddd; border-radius: 4px;">
+                    <button onclick="loadFromUrl()" style="padding: 8px 15px; background: #3498db; color: white; border: none; border-radius: 4px; cursor: pointer; margin-left: 10px;">URL laden</button>
+                </div>
+                <div id="errorMessage"></div>
+            </div>
         </div>
         
         <div id="monthSelector" style="display: none; text-align: center; margin-bottom: 20px; background: #ecf0f1; padding: 15px; border-radius: 8px;">
@@ -260,7 +288,7 @@
         </div>
 
         <div id="noData" class="no-data">
-            Laden Sie eine CSV-Datei hoch, um Ihre Ausgaben anzuzeigen.
+            <em>Keine Daten geladen.</em>
         </div>
 
         <div class="summary-section" id="summarySection" style="display: none;">
@@ -399,6 +427,21 @@
             
             // Tabelle standardmäßig ausblenden
             document.getElementById('tableContainer').classList.remove('show');
+            
+            // Upload-Bereich nach erfolgreichem Laden einklappen
+            collapseUpload();
+        }
+        
+        function collapseUpload() {
+            const uploadSection = document.getElementById('uploadSection');
+            uploadSection.classList.add('collapsed');
+        }
+        
+        function expandUpload() {
+            const uploadSection = document.getElementById('uploadSection');
+            if (uploadSection.classList.contains('collapsed')) {
+                uploadSection.classList.remove('collapsed');
+            }
         }
         
         function toggleTable() {
