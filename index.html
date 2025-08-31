@@ -47,4 +47,60 @@
         <button class="month-btn" onclick="filterByMonth('03')" data-month="03">Mär</button>
         <button class="month-btn" onclick="filterByMonth('04')" data-month="04">Apr</button>
         <button class="month-btn" onclick="filterByMonth('05')" data-month="05">Mai</button>
-        <button class="month-btn" onclic
+        <button class="month-btn" onclick="filterByMonth('06')" data-month="06">Jun</button>
+        <button class="month-btn" onclick="filterByMonth('07')" data-month="07">Jul</button>
+        <button class="month-btn" onclick="filterByMonth('08')" data-month="08">Aug</button>
+        <button class="month-btn" onclick="filterByMonth('09')" data-month="09">Sep</button>
+        <button class="month-btn" onclick="filterByMonth('10')" data-month="10">Okt</button>
+        <button class="month-btn" onclick="filterByMonth('11')" data-month="11">Nov</button>
+        <button class="month-btn" onclick="filterByMonth('12')" data-month="12">Dez</button>
+      </div>
+    </div>
+
+    <!-- Toggle Tabelle -->
+    <div class="table-toggle" id="tableToggle" style="display:none;">
+      <button class="toggle-btn" onclick="toggleTable()">📋 Details anzeigen</button>
+    </div>
+
+    <!-- Tabelle -->
+    <div class="table-container" id="tableContainer">
+      <table id="expenseTable">
+        <thead>
+          <tr>
+            <th>Datum</th>
+            <th>Artikel</th>
+            <th>Kategorie</th>
+            <th>Preis (€)</th>
+            <th>Shop</th>
+          </tr>
+        </thead>
+        <tbody id="tableBody"></tbody>
+      </table>
+    </div>
+
+    <div id="noData" class="no-data"><em>Keine Daten geladen.</em></div>
+
+    <!-- Zusammenfassung -->
+    <div class="summary-section" id="summarySection" style="display:none;">
+      <h2>📊 Zusammenfassung nach Kategorien</h2>
+      <div class="summary-grid" id="summaryGrid"></div>
+      <div class="total-summary">
+        <h2>💰 Gesamtausgaben</h2>
+        <div class="amount" id="totalSum">0,00 €</div>
+        <p id="dateRange">Zeitraum: -</p>
+      </div>
+    </div>
+
+    <!-- Chart -->
+    <div class="chart-section" id="chartSection" style="display:none;">
+      <h2>🏪 Ausgaben nach Shops</h2>
+      <div class="chart-container">
+        <canvas id="shopChart" width="400" height="400"></canvas>
+      </div>
+    </div>
+  </div>
+
+  <!-- JS -->
+  <script src="script.js"></script>
+</body>
+</html>
