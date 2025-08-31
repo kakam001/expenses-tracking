@@ -198,7 +198,7 @@
         .table-container {
             display: none;
         }
-        .table-container.expanded {
+        .table-container.show {
             display: block;
         }
     </style>
@@ -393,21 +393,23 @@
             calculateAndDisplaySummary();
             
             document.getElementById('noData').style.display = 'none';
-            document.getElementById('tableContainer').style.display = 'block';
             document.getElementById('summarySection').style.display = 'block';
             document.getElementById('monthSelector').style.display = 'block';
             document.getElementById('tableToggle').style.display = 'block';
+            
+            // Tabelle standardmäßig ausblenden
+            document.getElementById('tableContainer').classList.remove('show');
         }
         
         function toggleTable() {
             const tableContainer = document.getElementById('tableContainer');
             const toggleBtn = document.querySelector('.toggle-btn');
             
-            if (tableContainer.classList.contains('expanded')) {
-                tableContainer.classList.remove('expanded');
+            if (tableContainer.classList.contains('show')) {
+                tableContainer.classList.remove('show');
                 toggleBtn.textContent = '📋 Details anzeigen';
             } else {
-                tableContainer.classList.add('expanded');
+                tableContainer.classList.add('show');
                 toggleBtn.textContent = '📋 Details ausblenden';
             }
         }
